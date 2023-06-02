@@ -26,18 +26,30 @@ async fn main() {
             servers.push(ip);
         }
     }
-    //servers.push("45.59.171.8".to_string() );
-    //servers.push("149.56.243.144".to_string() );
     println!("Pinging: {} ips",servers.len());
 
     
     let mut tasks = FuturesUnordered::<Pin<Box<dyn Future<Output = Option<Response>>>>>::new();
-    for server in servers.iter(){
-        tasks.push(Box::pin(check(server)));
+    let mut itr = servers.iter();
+
+    for _ in 0..1000{
+        if let Some(ip) = itr.next() {
+            tasks.push(Box::pin(check(ip)));
+        } else {    
+            break;
+        }
     }
 
-    while let Some(Some(result)) = tasks.next().await as Option<Option<Response>>{
-        println!("Version: {} Players: {} Discription: {}",result.version,result.online_players,result.description.text);
+    while let Some(result) = tasks.next().await as Option<Option<Response>>{
+
+        if let Some(ip) = itr.next() {
+            tasks.push(Box::pin(check(ip)));
+        }
+
+        if let Some(result)=result{
+            println!("Version: {} Players: {} Discription: {}",result.version,result.online_players,result.description.text);
+        }
+
     }
     println!("Done");
 }
